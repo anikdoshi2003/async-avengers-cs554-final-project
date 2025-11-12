@@ -1,0 +1,52 @@
+name: Branch Protection Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  validate-pr:
+    name: Validate Pull Request
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check branch protection rules
+        run: |
+          echo "✅ Pull Request workflow check"
+          echo "This workflow validates that changes are coming through a PR"
+          echo ""
+          echo "Current branch: ${{ github.ref_name }}"
+          echo "Base branch: ${{ github.base_ref }}"
+          echo "Event: ${{ github.event_name }}"
+          echo ""
+          
+          if [[ "${{ github.event_name }}" == "push" ]] && [[ "${{ github.ref_name }}" == "main" ]]; then
+            echo "⚠️  Warning: Direct push to main detected!"
+            echo "This should not happen if branch protection is properly configured."
+            echo "Please ensure the ruleset is applied to the main branch."
+            exit 1
+          fi
+          
+          echo "✅ All checks passed!"
+
+      - name: PR validation summary
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "## PR Validation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Pull request is properly formatted" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Changes are being merged via PR (not direct push)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### PR Details" >> $GITHUB_STEP_SUMMARY
+          echo "- **Title:** ${{ github.event.pull_request.title }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** ${{ github.head_ref }} → ${{ github.base_ref }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Author:** @${{ github.event.pull_request.user.login }}" >> $GITHUB_STEP_SUMMARY

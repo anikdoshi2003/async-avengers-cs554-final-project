@@ -1,21 +1,22 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAuthErrorMessage } from "@/utils/authErrors";
+import { validatePassword, getPasswordRequirementsMessage } from "@/utils/passwordValidation";
 
-export default function LoginPage() {
+export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { login, signInWithGoogle, user } = useAuth();
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const { signup, signInWithGoogle, user } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   useEffect(() => {
     if (user) {
@@ -23,24 +24,27 @@ export default function LoginPage() {
     }
   }, [user, router]);
 
-  // Check for password reset success (separate effect to avoid loop)
-  useEffect(() => {
-    if (searchParams.get("reset") === "success") {
-      setSuccess("Password reset successful! Please sign in with your new password.");
-      // Remove query parameter from URL without triggering re-render
-      const url = new URL(window.location.href);
-      url.searchParams.delete("reset");
-      window.history.replaceState({}, "", url.pathname);
-    }
-  }, [searchParams]);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    // Validate password confirmation
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    // Validate password requirements
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      setError(getPasswordRequirementsMessage(passwordValidation.errors));
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await login(email, password);
+      await signup(email, password);
       router.push("/dashboard");
     } catch (err) {
       setError(getAuthErrorMessage(err));
@@ -118,21 +122,11 @@ export default function LoginPage() {
                   </div>
                 </Link>
                 <h1 className="text-3xl font-bold bg-linear-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
-                  Welcome Back
+                  Create Account
                 </h1>
               </div>
-              <p className="text-white/70 mt-1">Sign in to your LocalLens account</p>
+              <p className="text-white/70 mt-1">Join LocalLens and explore your neighborhood</p>
             </div>
-
-            {/* Success Message */}
-            {success && (
-              <div className="alert alert-success mb-3">
-                <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span className="text-sm">{success}</span>
-              </div>
-            )}
 
             {/* Error Message */}
             {error && (
@@ -173,7 +167,7 @@ export default function LoginPage() {
                       d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                     />
                   </svg>
-                  Sign in with Google
+                  Sign up with Google
                 </>
               )}
             </button>
@@ -183,11 +177,11 @@ export default function LoginPage() {
             {/* Email/Password Form */}
             <form onSubmit={handleSubmit} className="space-y-3">
               <div className="form-control">
-                <label htmlFor="email" className="label pb-1.5">
+                <label htmlFor="signup-email" className="label pb-1.5">
                   <span className="label-text text-white font-medium">Email</span>
                 </label>
                 <input
-                  id="email"
+                  id="signup-email"
                   type="email"
                   placeholder="Enter your email"
                   className="input input-bordered w-full bg-slate-900/80 border-slate-600/50 text-white placeholder:text-gray-500 focus:border-cyan-400 focus:outline-none focus:bg-slate-900"
@@ -199,14 +193,14 @@ export default function LoginPage() {
               </div>
 
               <div className="form-control">
-                <label htmlFor="password" className="label pb-1.5">
+                <label htmlFor="signup-password" className="label pb-1.5">
                   <span className="label-text text-white font-medium">Password</span>
                 </label>
                 <div className="relative">
                   <input
-                    id="password"
+                    id="signup-password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
+                    placeholder="Min. 8 chars: uppercase, lowercase, number, symbol"
                     className="input input-bordered w-full bg-slate-900/80 border-slate-600/50 text-white placeholder:text-gray-500 focus:border-cyan-400 focus:outline-none focus:bg-slate-900 pr-12"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -236,10 +230,45 @@ export default function LoginPage() {
                     )}
                   </button>
                 </div>
-                <div className="label">
-                  <Link href="/forgot-password" className="label-text-alt link link-hover text-cyan-400 hover:text-cyan-300">
-                    Forgot Password?
-                  </Link>
+              </div>
+
+              <div className="form-control">
+                <label htmlFor="signup-confirm-password" className="label pb-1.5">
+                  <span className="label-text text-white font-medium">Confirm Password</span>
+                </label>
+                <div className="relative">
+                  <input
+                    id="signup-confirm-password"
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="Confirm your password"
+                    className="input input-bordered w-full bg-slate-900/80 border-slate-600/50 text-white placeholder:text-gray-500 focus:border-cyan-400 focus:outline-none focus:bg-slate-900 pr-12"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-cyan-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    onMouseDown={() => setShowConfirmPassword(true)}
+                    onMouseUp={() => setShowConfirmPassword(false)}
+                    onMouseLeave={() => setShowConfirmPassword(false)}
+                    onTouchStart={() => setShowConfirmPassword(true)}
+                    onTouchEnd={() => setShowConfirmPassword(false)}
+                    disabled={loading}
+                    aria-label="Press and hold to show password"
+                  >
+                    {showConfirmPassword ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.29 3.29m0 0L9.88 9.88m-3.59-3.59l3.29 3.29M12 12l.01.01M21 12l-3.29-3.29m0 0L15.12 9.88m3.59 3.59L15.12 15.12m0 0L12 12" />
+                      </svg>
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    )}
+                  </button>
                 </div>
               </div>
 
@@ -251,17 +280,17 @@ export default function LoginPage() {
                 {loading ? (
                   <span className="loading loading-spinner loading-sm"></span>
                 ) : (
-                  "Sign In"
+                  "Create Account"
                 )}
               </button>
             </form>
 
-            {/* Sign Up Link */}
+            {/* Sign In Link */}
             <div className="text-center mt-4">
               <p className="text-white/70">
-                Don't have an account?{" "}
-                <Link href="/signup" className="link link-hover text-cyan-400 hover:text-cyan-300">
-                  Sign up
+                Already have an account?{" "}
+                <Link href="/login" className="link link-hover text-cyan-400 hover:text-cyan-300">
+                  Sign in
                 </Link>
               </p>
             </div>

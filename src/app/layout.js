@@ -1,4 +1,6 @@
 import "./globals.css";
+import { AuthProvider } from "@/contexts/AuthContext";
+import ClientLayout from "@/components/ClientLayout";
 
 export const metadata = {
   title: "LocalLens - Neighborhood Intelligence Platform",
@@ -8,7 +10,11 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" data-theme="business">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <AuthProvider>
+          <ClientLayout>{children}</ClientLayout>
+        </AuthProvider>
+      </body>
     </html>
   );
 }

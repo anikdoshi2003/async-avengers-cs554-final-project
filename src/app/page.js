@@ -2,10 +2,22 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Home() {
   const [scrollY, setScrollY] = useState(0);
   const [revealedSections, setRevealedSections] = useState(new Set());
+  const { user, loading, logout } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -104,20 +116,50 @@ export default function Home() {
             </Link>
           </div>
           <div className="flex-none flex items-center gap-3 ml-auto">
-            <Link 
-              href="/login" 
-              className="btn btn-sm md:btn-md transition-all duration-300 font-medium border-2 border-cyan-400/50 hover:border-cyan-400 hover:bg-cyan-400/10 hover:scale-105 hover:shadow-lg hover:shadow-cyan-400/20 bg-transparent"
-            >
-              <span className="bg-linear-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">Sign In</span>
-            </Link>
-            <Link 
-              href="/signup" 
-              className="btn btn-sm md:btn-md shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 font-semibold relative overflow-hidden group text-white border-none"
-              style={{ background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 50%, #8b5cf6 100%)' }}
-            >
-              <span className="relative z-10">Get Started</span>
-              <span className="absolute inset-0 bg-linear-to-r from-cyan-400 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
-            </Link>
+            {loading ? (
+              <span className="loading loading-spinner loading-sm text-cyan-400"></span>
+            ) : user ? (
+              <>
+                <div className="flex items-center gap-3">
+                  <div className="avatar placeholder">
+                    <div className="bg-linear-to-br from-cyan-500 via-blue-500 to-purple-600 text-white rounded-full w-10 h-10 border-2 border-cyan-400/50">
+                      <span className="text-sm">
+                        {user.email ? user.email.charAt(0).toUpperCase() : "U"}
+                      </span>
+                    </div>
+                  </div>
+                  <Link 
+                    href="/dashboard" 
+                    className="btn btn-sm md:btn-md transition-all duration-300 font-medium border-2 border-cyan-400 hover:border-cyan-300 hover:bg-cyan-400/20 hover:scale-105 hover:shadow-lg hover:shadow-cyan-400/20 bg-transparent text-white"
+                  >
+                    Dashboard
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="btn btn-sm md:btn-md transition-all duration-300 font-medium border-2 border-cyan-400 hover:border-cyan-300 hover:bg-cyan-400/20 hover:scale-105 hover:shadow-lg hover:shadow-cyan-400/20 bg-transparent text-white"
+                  >
+                    Logout
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <Link 
+                  href="/login" 
+                  className="btn btn-sm md:btn-md transition-all duration-300 font-medium border-2 border-cyan-400 hover:border-cyan-300 hover:bg-cyan-400/20 hover:scale-105 hover:shadow-lg hover:shadow-cyan-400/20 bg-transparent text-white"
+                >
+                  Sign In
+                </Link>
+                <Link 
+                  href="/signup" 
+                  className="btn btn-sm md:btn-md shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 font-semibold relative overflow-hidden group text-white border-none"
+                  style={{ background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 50%, #8b5cf6 100%)' }}
+                >
+                  <span className="relative z-10">Get Started</span>
+                  <span className="absolute inset-0 bg-linear-to-r from-cyan-400 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </nav>
@@ -168,10 +210,14 @@ export default function Home() {
               </p>
             </div>
             <div className="flex gap-4 justify-center animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
-              <Link href="/login" className="btn btn-lg hover:scale-105 transition-transform shadow-lg backdrop-blur-sm text-white font-semibold" style={{ background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 50%, #8b5cf6 100%)', border: 'none' }}>
-                Explore Now
+              <Link href={user ? "/dashboard" : "/login"} className="btn btn-lg hover:scale-105 transition-transform shadow-lg backdrop-blur-sm text-white font-semibold" style={{ background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 50%, #8b5cf6 100%)', border: 'none' }}>
+                {user ? "Go to Dashboard" : "Explore Now"}
               </Link>
-              <Link href="#features" className="btn btn-outline btn-lg hover:scale-105 transition-transform border-2 backdrop-blur-sm text-white border-cyan-400/60 hover:bg-cyan-400/20 hover:border-cyan-400">
+              <Link 
+                href="#features" 
+                className="btn btn-outline btn-lg hover:scale-105 transition-transform border-2 backdrop-blur-sm text-white border-cyan-400 hover:bg-cyan-400/30 hover:border-cyan-300 font-semibold"
+                aria-label="Learn more about LocalLens features"
+              >
                 Learn More
               </Link>
             </div>
@@ -189,7 +235,7 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16 animate-fade-in-up">
             <h2 className="text-4xl md:text-5xl font-bold mb-4 text-white">Powerful Features</h2>
-            <p className="text-lg text-white/90 max-w-2xl mx-auto">
+            <p className="text-lg text-white max-w-2xl mx-auto">
               Everything you need to understand your neighborhood at a glance
             </p>
           </div>
@@ -204,7 +250,7 @@ export default function Home() {
                   </svg>
                 </div>
                 <h3 className="card-title text-white">Interactive Maps & Heatmaps</h3>
-                <p className="text-white/90">
+                <p className="text-white">
                   Explore neighborhoods with dynamic heatmaps showing rent trends, crime density,
                   and business activity. Visualize data in an intuitive, interactive way.
                 </p>
@@ -223,7 +269,7 @@ export default function Home() {
                   </svg>
                 </div>
                 <h3 className="card-title text-white">Historical Data Analysis</h3>
-                <p className="text-white/90">
+                <p className="text-white">
                   Track neighborhood trends over time with interactive charts. See how rent prices,
                   crime rates, and business activity have changed.
                 </p>
@@ -242,7 +288,7 @@ export default function Home() {
                   </svg>
                 </div>
                 <h3 className="card-title text-white">Hyper-Local Content</h3>
-                <p className="text-white/90">
+                <p className="text-white">
                   Connect with your neighborhood through local events, yard sales, and community
                   crime reports. All content is neighborhood-specific.
                 </p>
@@ -261,7 +307,7 @@ export default function Home() {
                   </svg>
                 </div>
                 <h3 className="card-title text-white">Secure & Moderated</h3>
-                <p className="text-white/90">
+                <p className="text-white">
                   Built with Firebase Authentication and role-based access control. Content
                   moderation ensures a safe community experience.
                 </p>
@@ -280,7 +326,7 @@ export default function Home() {
                   </svg>
                 </div>
                 <h3 className="card-title text-white">Real-Time Communication</h3>
-                <p className="text-white/90">
+                <p className="text-white">
                   Join neighborhood chatrooms and receive instant notifications for new events,
                   crimes, or messages. Stay connected with your community.
                 </p>
@@ -299,7 +345,7 @@ export default function Home() {
                   </svg>
                 </div>
                 <h3 className="card-title text-white">Data Aggregation</h3>
-                <p className="text-white/90">
+                <p className="text-white">
                   Comprehensive data from multiple sources including public crime data, real estate
                   prices, and Google Places. All standardized and stored for easy access.
                 </p>
@@ -322,7 +368,7 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16 animate-fade-in-up">
             <h2 className="text-4xl md:text-5xl font-bold mb-4 text-white">How It Works</h2>
-            <p className="text-lg text-white/90 max-w-2xl mx-auto">
+            <p className="text-lg text-white max-w-2xl mx-auto">
               Get started in three simple steps
             </p>
           </div>
@@ -337,7 +383,7 @@ export default function Home() {
                 </div>
               </div>
               <h3 className="text-2xl font-semibold mb-3 text-white">Sign Up</h3>
-              <p className="text-white/80">
+              <p className="text-white">
                 Create your account and register your neighborhood. Choose from email/password
                 or social login options.
               </p>
@@ -352,7 +398,7 @@ export default function Home() {
                 </div>
               </div>
               <h3 className="text-2xl font-semibold mb-3 text-white">Explore</h3>
-              <p className="text-white/80">
+              <p className="text-white">
                 Browse interactive maps, view heatmaps, and analyze historical trends for your
                 neighborhood and surrounding areas.
               </p>
@@ -367,7 +413,7 @@ export default function Home() {
                 </div>
               </div>
               <h3 className="text-2xl font-semibold mb-3 text-white">Engage</h3>
-              <p className="text-white/80">
+              <p className="text-white">
                 Join neighborhood discussions, post events, share yard sales, and report local
                 incidents. Connect with your community.
               </p>
@@ -386,7 +432,7 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16 animate-fade-in-up">
             <h2 className="text-4xl md:text-5xl font-bold mb-4 text-white">Perfect For</h2>
-            <p className="text-lg text-white/90 max-w-2xl mx-auto">
+            <p className="text-lg text-white max-w-2xl mx-auto">
               Whether you're looking for a home, starting a business, or investing
             </p>
           </div>
@@ -400,7 +446,7 @@ export default function Home() {
                   </svg>
                 </div>
                 <h3 className="card-title text-white">Families</h3>
-                <p className="text-white/90">
+                <p className="text-white">
                   Find safe communities with great schools, low crime rates, and family-friendly
                   amenities. Make informed decisions about where to raise your family.
                 </p>
@@ -415,7 +461,7 @@ export default function Home() {
                   </svg>
                 </div>
                 <h3 className="card-title text-white">Renters</h3>
-                <p className="text-white/90">
+                <p className="text-white">
                   Compare housing costs across neighborhoods. Track rent fluctuations and find
                   the best value for your budget.
                 </p>
@@ -430,7 +476,7 @@ export default function Home() {
                   </svg>
                 </div>
                 <h3 className="card-title text-white">Entrepreneurs</h3>
-                <p className="text-white/90">
+                <p className="text-white">
                   Scout locations for your business. Analyze foot traffic, competition, and
                   local demographics to find the perfect spot.
                 </p>
@@ -452,11 +498,11 @@ export default function Home() {
         </div>
         <div className="container mx-auto px-4 text-center relative z-10 animate-fade-in">
           <h2 className="text-4xl md:text-5xl font-bold mb-4 text-white">Ready to Explore Your Neighborhood?</h2>
-          <p className="text-xl mb-8 text-white/90">
+          <p className="text-xl mb-8 text-white">
             Join LocalLens today and start making data-driven decisions about your community.
           </p>
-          <Link href="/signup" className="btn btn-lg text-white shadow-2xl hover:scale-105 transition-transform animate-pulse-glow border-none font-semibold" style={{ background: 'linear-gradient(135deg, #22d3ee 0%, #a855f7 100%)' }}>
-            Get Started Free
+          <Link href={user ? "/dashboard" : "/signup"} className="btn btn-lg text-white shadow-2xl hover:scale-105 transition-transform animate-pulse-glow border-none font-semibold" style={{ background: 'linear-gradient(135deg, #22d3ee 0%, #a855f7 100%)' }}>
+            {user ? "Go to Dashboard" : "Get Started Free"}
           </Link>
         </div>
       </section>
@@ -487,13 +533,13 @@ export default function Home() {
                 />
               </svg>
               <span className="text-sm font-semibold text-white">LocalLens</span>
-              <span className="text-xs text-white/70">© {new Date().getFullYear()}</span>
+              <span className="text-xs text-white/90">© {new Date().getFullYear()}</span>
             </div>
             <div className="flex items-center gap-6">
-              <a href="#" className="text-sm link link-hover hover:text-cyan-400 transition-colors text-white/80">About</a>
-              <a href="#" className="text-sm link link-hover hover:text-cyan-400 transition-colors text-white/80">Contact</a>
-              <a href="#" className="text-sm link link-hover hover:text-cyan-400 transition-colors text-white/80">Privacy</a>
-              <a href="#" className="text-sm link link-hover hover:text-cyan-400 transition-colors text-white/80">Terms</a>
+              <a href="#" className="text-sm link link-hover hover:text-cyan-400 transition-colors text-white" aria-label="Learn more about LocalLens">About</a>
+              <a href="#" className="text-sm link link-hover hover:text-cyan-400 transition-colors text-white" aria-label="Contact LocalLens">Contact</a>
+              <a href="#" className="text-sm link link-hover hover:text-cyan-400 transition-colors text-white" aria-label="View LocalLens privacy policy">Privacy</a>
+              <a href="#" className="text-sm link link-hover hover:text-cyan-400 transition-colors text-white" aria-label="View LocalLens terms of service">Terms</a>
             </div>
           </div>
         </div>

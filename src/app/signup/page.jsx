@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import { getAuthErrorMessage } from "@/utils/authErrors";
-import { validatePassword, getPasswordRequirementsMessage } from "@/utils/passwordValidation";
+import { getAuthErrorMessage } from "@/firebase/authErrors";
+import { validatePassword, getPasswordRequirementsMessage } from "@/firebase/passwordValidation";
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");

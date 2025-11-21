@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import { getAuthErrorMessage } from "@/utils/authErrors";
+import { getAuthErrorMessage } from "@/firebase/authErrors";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");

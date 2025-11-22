@@ -1,6 +1,6 @@
 import "./globals.css";
-import { AuthProvider } from "@/contexts/AuthContext";
-import ClientLayout from "@/components/ClientLayout";
+import { AuthProvider } from "@/firebase/AuthContext";
+import ClientLayout from "@/app/components/ClientLayout";
 
 export const metadata = {
   title: "LocalLens - Neighborhood Intelligence Platform",

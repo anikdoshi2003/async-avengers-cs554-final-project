@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/firebase/AuthContext";
 import { getAuthErrorMessage } from "@/firebase/authErrors";
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -236,9 +236,26 @@ export default function LoginPage() {
                     )}
                   </button>
                 </div>
-                <div className="label">
-                  <Link href="/forgot-password" className="label-text-alt link link-hover text-cyan-400 hover:text-cyan-300">
-                    Forgot Password?
+                <div className="label justify-end mt-1">
+                  <Link 
+                    href="/forgot-password" 
+                    className="label-text-alt text-cyan-400 hover:text-cyan-300 font-medium transition-all duration-200 inline-flex items-center gap-1.5 group px-2 py-1 rounded-md hover:bg-cyan-500/10 hover:shadow-sm"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:scale-110"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                      />
+                    </svg>
+                    <span className="group-hover:underline">Forgot Password?</span>
                   </Link>
                 </div>
               </div>
@@ -279,3 +296,10 @@ export default function LoginPage() {
   );
 }
 
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><span className="loading loading-spinner loading-lg text-cyan-400"></span></div>}>
+      <LoginForm />
+    </Suspense>
+  );
+}

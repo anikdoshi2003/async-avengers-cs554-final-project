@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/firebase/AuthContext";
 import { getAuthErrorMessage } from "@/firebase/authErrors";
 
 export default function ForgotPasswordPage() {
@@ -27,14 +27,9 @@ export default function ForgotPasswordPage() {
     setLoading(true);
 
     try {
-      console.log("Sending password reset email to:", email);
       await resetPassword(email);
-      console.log("Password reset email sent successfully");
       setSuccess(true);
     } catch (err) {
-      console.error("Password reset error:", err);
-      console.error("Error code:", err.code);
-      console.error("Error message:", err.message);
       // Handle Google-only accounts
       if (
         err.code === "auth/operation-not-allowed" ||
@@ -87,15 +82,15 @@ export default function ForgotPasswordPage() {
         >
           <div className="card-body p-6">
             {/* Logo and Title */}
-            <div className="text-center mb-4">
-              <div className="flex flex-col items-center mb-3">
+            <div className="text-center mb-6">
+              <div className="flex flex-col items-center mb-4">
                 <Link
                   href="/"
-                  className="mb-2"
+                  className="mb-3"
                   aria-label="Go to LocalLens homepage"
                 >
                   <div
-                    className="w-16 h-16 rounded-full bg-linear-to-br from-cyan-500 via-blue-500 to-purple-600 flex items-center justify-center shadow-2xl mx-auto"
+                    className="w-16 h-16 rounded-full bg-linear-to-br from-cyan-500 via-blue-500 to-purple-600 flex items-center justify-center shadow-2xl mx-auto transition-transform hover:scale-105"
                     style={{
                       boxShadow:
                         "0 0 40px rgba(34, 211, 238, 0.5), 0 0 60px rgba(147, 51, 234, 0.3)",
@@ -124,11 +119,16 @@ export default function ForgotPasswordPage() {
                     </svg>
                   </div>
                 </Link>
-                <h1 className="text-3xl font-bold bg-linear-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
-                  Reset Password
+                <h1 className="text-4xl font-bold mb-2">
+                  <span className="bg-linear-to-r from-cyan-400 to-cyan-500 bg-clip-text text-transparent">
+                    Reset
+                  </span>{" "}
+                  <span className="bg-linear-to-r from-purple-400 to-purple-500 bg-clip-text text-transparent">
+                    Password
+                  </span>
                 </h1>
               </div>
-              <p className="text-white/70 mt-1">
+              <p className="text-white/80 text-sm leading-relaxed px-2">
                 {success
                   ? "Check your email for password reset instructions"
                   : "Enter your email address and we'll send you a link to reset your password"}
@@ -137,10 +137,10 @@ export default function ForgotPasswordPage() {
 
             {/* Success Message */}
             {success && (
-              <div className="alert alert-success mb-3">
+              <div className="alert alert-success mb-4 border-green-500/30 bg-green-500/10 backdrop-blur-sm">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="stroke-current shrink-0 h-6 w-6"
+                  className="stroke-current shrink-0 h-6 w-6 text-green-400"
                   fill="none"
                   viewBox="0 0 24 24"
                 >
@@ -151,21 +151,26 @@ export default function ForgotPasswordPage() {
                     d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                <span className="text-sm">
-                  If an account exists with this email and uses email/password
-                  authentication, you will receive a password reset link
-                  shortly. If you signed up with Google, please use the "Sign in
-                  with Google" option instead.
-                </span>
+                <div className="flex flex-col gap-1">
+                  <span className="text-sm font-medium text-green-300">
+                    Email sent successfully!
+                  </span>
+                  <span className="text-xs text-green-400/80">
+                    If an account exists with this email and uses email/password
+                    authentication, you will receive a password reset link
+                    shortly. If you signed up with Google, please use the "Sign in
+                    with Google" option instead.
+                  </span>
+                </div>
               </div>
             )}
 
             {/* Error Message */}
             {error && (
-              <div className="alert alert-error mb-3">
+              <div className="alert alert-error mb-4 border-red-500/30 bg-red-500/10 backdrop-blur-sm">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="stroke-current shrink-0 h-6 w-6"
+                  className="stroke-current shrink-0 h-6 w-6 text-red-400"
                   fill="none"
                   viewBox="0 0 24 24"
                 >
@@ -176,13 +181,13 @@ export default function ForgotPasswordPage() {
                     d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                <span className="text-sm">{error}</span>
+                <span className="text-sm text-red-300">{error}</span>
               </div>
             )}
 
             {/* Email Form */}
             {!success && (
-              <form onSubmit={handleSubmit} className="space-y-3">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="form-control">
                   <label htmlFor="reset-email" className="label pb-1.5">
                     <span className="label-text text-white font-medium">
@@ -193,7 +198,7 @@ export default function ForgotPasswordPage() {
                     id="reset-email"
                     type="email"
                     placeholder="Enter your email"
-                    className="input input-bordered w-full bg-slate-900/80 border-slate-600/50 text-white placeholder:text-gray-500 focus:border-cyan-400 focus:outline-none focus:bg-slate-900"
+                    className="input input-bordered w-full bg-slate-900/80 border-slate-600/50 text-white placeholder:text-gray-500 focus:border-cyan-400 focus:outline-none focus:bg-slate-900 transition-all"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -204,25 +209,58 @@ export default function ForgotPasswordPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="btn w-full text-white border-none font-semibold hover:scale-105 transition-transform bg-slate-800 hover:bg-slate-700"
+                  className="btn w-full text-white border-none font-semibold hover:scale-105 transition-all duration-200 bg-linear-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 shadow-lg shadow-cyan-500/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
                   {loading ? (
-                    <span className="loading loading-spinner loading-sm"></span>
+                    <>
+                      <span className="loading loading-spinner loading-sm"></span>
+                      <span>Sending...</span>
+                    </>
                   ) : (
-                    "Send Reset Link"
+                    <>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5 mr-2"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                        />
+                      </svg>
+                      Send Reset Link
+                    </>
                   )}
                 </button>
               </form>
             )}
 
             {/* Back to Login */}
-            <div className="text-center mt-4">
+            <div className="text-center mt-6 pt-4 border-t border-gray-700/50">
               <Link
                 href="/login"
-                className="btn btn-ghost btn-sm text-white/70 hover:text-white hover:bg-slate-700/50"
+                className="btn btn-ghost btn-sm text-white/70 hover:text-white hover:bg-slate-700/50 transition-all"
                 aria-label="Back to login page"
               >
-                ← Back to Login
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4 mr-1"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                  />
+                </svg>
+                Back to Login
               </Link>
             </div>
           </div>

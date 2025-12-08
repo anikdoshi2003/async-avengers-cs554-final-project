@@ -459,7 +459,7 @@ export default function ProfilePage() {
                     className="w-16 h-16 rounded-full border-2 border-cyan-400 object-cover"
                   />
                 ) : (
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center border-2 border-cyan-400">
+                  <div className="w-16 h-16 rounded-full bg-linear-to-br from-cyan-500 to-purple-600 flex items-center justify-center border-2 border-cyan-400">
                     <span className="text-white text-2xl font-bold">
                       {userProfile?.firstName?.[0]?.toUpperCase() || userProfile?.lastName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "U"}
                     </span>

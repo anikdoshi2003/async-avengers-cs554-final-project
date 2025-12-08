@@ -10,8 +10,7 @@ export default function DashboardPage() {
   const { user, userProfile, loading, logout } = useAuth();
   const router = useRouter();
   const [checkingProfile, setCheckingProfile] = useState(true);
-  // Use userProfile from AuthContext as primary source for UI
-  const profileData = userProfile;
+  // Use userProfile from AuthContext directly - it's reactive and updates automatically
 
   useEffect(() => {
     if (!loading && !user) {
@@ -224,9 +223,9 @@ export default function DashboardPage() {
           >
             <div className="card-body">
               <div className="flex items-center gap-4 mb-4">
-                {profileData?.photoURL ? (
+                {userProfile?.photoURL ? (
                   <img
-                    src={profileData.photoURL}
+                    src={userProfile.photoURL}
                     alt="Profile"
                     className="w-16 h-16 rounded-full border-2 shadow-lg object-cover"
                     style={{ borderColor: "rgba(34, 211, 238, 0.6)" }}
@@ -237,7 +236,7 @@ export default function DashboardPage() {
                     style={{ borderColor: "rgba(34, 211, 238, 0.6)" }}
                   >
                     <span className="text-2xl font-bold">
-                      {profileData?.firstName?.[0]?.toUpperCase() || profileData?.lastName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "U"}
+                      {userProfile?.firstName?.[0]?.toUpperCase() || userProfile?.lastName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "U"}
                     </span>
                   </div>
                 )}

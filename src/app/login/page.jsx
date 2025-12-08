@@ -48,6 +48,8 @@ function LoginForm() {
       router.push("/dashboard");
     } catch (err) {
       setError(getAuthErrorMessage(err));
+    } finally {
+      // Always reset loading state, even if navigation succeeds or fails
       setLoading(false);
     }
   };
@@ -62,6 +64,8 @@ function LoginForm() {
       router.push("/dashboard");
     } catch (err) {
       setError(getAuthErrorMessage(err));
+    } finally {
+      // Always reset loading state, even if navigation succeeds or fails
       setLoading(false);
     }
   };

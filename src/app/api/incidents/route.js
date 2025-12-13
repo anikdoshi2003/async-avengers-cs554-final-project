@@ -4,6 +4,7 @@ import connectDB from '@/lib/mongodb';
 import User from '@/models/User';
 import Incident from '@/models/Incident';
 import { sanitizeText } from '@/lib/sanitizeInput';
+import { verifyToken } from '@/firebase/verifyToken';
 
 // POST - Create a new incident report
 export async function POST(request) {
@@ -11,13 +12,24 @@ export async function POST(request) {
     await connectDB();
     
     const body = await request.json();
-    const { location, incidentType, description, reportedAt } = body;
-    const userId = request.headers.get('user-id');
+    const { location, incidentType, description, reportedAt, uid } = body;
 
-    if (!userId) {
+    // Verify authentication token
+    const decodedToken = await verifyToken(request);
+    if (!decodedToken) {
       return NextResponse.json(
-        { error: 'User ID required' },
+        { error: 'Unauthorized: Invalid or missing authentication token' },
         { status: 401 }
+      );
+    }
+
+    const userId = uid || decodedToken.uid;
+
+    // Verify that the user is accessing their own data (if uid is provided)
+    if (uid && decodedToken.uid !== uid) {
+      return NextResponse.json(
+        { error: 'Forbidden: You can only create incidents for your own account' },
+        { status: 403 }
       );
     }
 

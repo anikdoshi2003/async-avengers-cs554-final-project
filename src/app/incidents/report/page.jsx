@@ -39,6 +39,7 @@ export default function ReportPage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [fieldErrors, setFieldErrors] = useState({
     incidentType: '',
     description: '',
@@ -185,17 +186,28 @@ export default function ReportPage() {
     setSubmitting(true);
 
     try {
+      // Get Firebase ID token for authentication
+      const { auth } = await import('@/firebase/config');
+      const { getAuth } = await import('firebase/auth');
+      const currentAuth = auth || getAuth();
+      const idToken = currentAuth?.currentUser ? await currentAuth.currentUser.getIdToken() : null;
+
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      if (idToken) {
+        headers['Authorization'] = `Bearer ${idToken}`;
+      }
+
       const response = await fetch('/api/incidents', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'user-id': user.uid
-        },
+        headers: headers,
         body: JSON.stringify({
           location: formData.location,
           incidentType: formData.incidentType,
           description: formData.description,
-          reportedAt: formData.reportedAt ? new Date(formData.reportedAt).toISOString() : null
+          reportedAt: formData.reportedAt ? new Date(formData.reportedAt).toISOString() : null,
+          uid: user.uid
         })
       });
 
@@ -207,8 +219,8 @@ export default function ReportPage() {
         return;
       }
 
-      // Show confirmation and reset form
-      alert('Report submitted successfully!');
+      // Show success message and reset form
+      setSuccessMessage('Report submitted successfully!');
       
       // Reset form
       setFormData({
@@ -220,6 +232,11 @@ export default function ReportPage() {
       setSelectedLocation(null);
       setError('');
       setSubmitting(false);
+      
+      // Clear success message after 5 seconds
+      setTimeout(() => {
+        setSuccessMessage('');
+      }, 5000);
     } catch (error) {
       console.error('Error submitting report:', error);
       setError('Failed to submit report. Please try again.');
@@ -296,8 +313,20 @@ export default function ReportPage() {
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-              {error}
+            <div className="alert alert-error mb-6">
+              <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>{error}</span>
+            </div>
+          )}
+
+          {successMessage && (
+            <div className="alert alert-success mb-6">
+              <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>{successMessage}</span>
             </div>
           )}
 

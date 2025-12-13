@@ -210,7 +210,7 @@ const ZipcodeInput = ({ onZipcodeChange, defaultZipcode = '' }) => {
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}
           maxLength={5}
-          className="w-full px-4 py-2 pl-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-2 pl-10 border border-base-300 rounded-lg bg-base-100 text-base-content placeholder-base-content/50 focus:outline-none focus:ring-2 focus:ring-primary"
         />
         {zipcode.length === 5 && (
           <div className="absolute right-3 top-1/2 transform -translate-y-1/2">

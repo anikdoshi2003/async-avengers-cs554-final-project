@@ -1,51 +1,42 @@
 // src/app/friends/search/page.jsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-
-// Static mock data
-const MOCK_USERS = [
-  { id: 1, name: 'John Doe', email: 'john@example.com', avatar: 'https://ui-avatars.com/api/?name=John+Doe&background=0D8ABC&color=fff', requestSent: false },
-  { id: 2, name: 'Jane Smith', email: 'jane@example.com', avatar: 'https://ui-avatars.com/api/?name=Jane+Smith&background=6366f1&color=fff', requestSent: false },
-  { id: 3, name: 'Mike Johnson', email: 'mike@example.com', avatar: 'https://ui-avatars.com/api/?name=Mike+Johnson&background=ec4899&color=fff', requestSent: false },
-  { id: 4, name: 'Sarah Williams', email: 'sarah@example.com', avatar: 'https://ui-avatars.com/api/?name=Sarah+Williams&background=8b5cf6&color=fff', requestSent: false },
-  { id: 5, name: 'David Brown', email: 'david@example.com', avatar: 'https://ui-avatars.com/api/?name=David+Brown&background=f59e0b&color=fff', requestSent: false },
-  { id: 6, name: 'Emma Davis', email: 'emma@example.com', avatar: 'https://ui-avatars.com/api/?name=Emma+Davis&background=10b981&color=fff', requestSent: false },
-];
-
-const MOCK_REQUESTS = [
-  { 
-    id: 1, 
-    sender: { 
-      id: 7, 
-      name: 'Alex Turner', 
-      email: 'alex@example.com', 
-      avatar: 'https://ui-avatars.com/api/?name=Alex+Turner&background=ef4444&color=fff' 
-    },
-    createdAt: '2024-11-25T10:30:00'
-  },
-  { 
-    id: 2, 
-    sender: { 
-      id: 8, 
-      name: 'Lisa Anderson', 
-      email: 'lisa@example.com', 
-      avatar: 'https://ui-avatars.com/api/?name=Lisa+Anderson&background=14b8a6&color=fff' 
-    },
-    createdAt: '2024-11-26T15:45:00'
-  },
-];
+import { useAuth } from '@/firebase/AuthContext';
+import Navigation from '@/app/components/Navigation';
 
 export default function FriendsSearchPage() {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
-  const [friendRequests, setFriendRequests] = useState(MOCK_REQUESTS);
+  const [friendRequests, setFriendRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('search'); // 'search' or 'requests'
   const [notification, setNotification] = useState({ type: '', message: '' });
 
-  const handleSearch = (e) => {
+  // Fetch friend requests on mount
+  useEffect(() => {
+    if (user) {
+      fetchFriendRequests();
+    }
+  }, [user]);
+
+  const fetchFriendRequests = async () => {
+    try {
+      const response = await fetch('/api/friends/request', {
+        headers: {
+          'user-id': user.uid
+        }
+      });
+      const data = await response.json();
+      setFriendRequests(data.requests || []);
+    } catch (error) {
+      console.error('Error fetching friend requests:', error);
+    }
+  };
+
+  const handleSearch = async (e) => {
     e.preventDefault();
     if (!searchQuery.trim()) {
       setSearchResults([]);
@@ -54,56 +45,119 @@ export default function FriendsSearchPage() {
 
     setLoading(true);
     
-    // Simulate API delay
-    setTimeout(() => {
-      const results = MOCK_USERS.filter(user => 
-        user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      setSearchResults(results);
+    try {
+      const response = await fetch(`/api/friends/search?q=${encodeURIComponent(searchQuery)}`, {
+        headers: {
+          'user-id': user.uid
+        }
+      });
+      const data = await response.json();
+      setSearchResults(data.users || []);
+    } catch (error) {
+      console.error('Error searching users:', error);
+      setSearchResults([]);
+    } finally {
       setLoading(false);
-    }, 500);
+    }
   };
 
-  const sendFriendRequest = (userId) => {
-    setSearchResults(searchResults.map(user => 
-      user.id === userId ? { ...user, requestSent: true } : user
-    ));
+  const sendFriendRequest = async (recipientId) => {
+    try {
+      const response = await fetch('/api/friends/request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'user-id': user.uid
+        },
+        body: JSON.stringify({ recipientId })
+      });
+
+      if (response.ok) {
+        // Update UI to show request sent
+        setSearchResults(searchResults.map(u => 
+          u._id === recipientId ? { ...u, requestSent: true } : u
+        ));
+        setNotification({ type: 'success', message: 'Friend request sent!' });
+        setTimeout(() => setNotification({ type: '', message: '' }), 5000);
+      } else {
+        const error = await response.json();
+        setNotification({ type: 'error', message: error.error || 'Failed to send friend request' });
+        setTimeout(() => setNotification({ type: '', message: '' }), 5000);
+      }
+    } catch (error) {
+      console.error('Error sending friend request:', error);
+      setNotification({ type: 'error', message: 'Failed to send friend request' });
+      setTimeout(() => setNotification({ type: '', message: '' }), 5000);
+    }
   };
 
-  const acceptRequest = (requestId) => {
-    setFriendRequests(friendRequests.filter(req => req.id !== requestId));
-    setNotification({ type: 'success', message: 'Friend request accepted!' });
-    setTimeout(() => setNotification({ type: '', message: '' }), 5000);
+  const acceptRequest = async (requestId) => {
+    try {
+      const response = await fetch('/api/friends/accept', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'user-id': user.uid
+        },
+        body: JSON.stringify({ requestId })
+      });
+
+      if (response.ok) {
+        setFriendRequests(friendRequests.filter(req => req._id !== requestId));
+        setNotification({ type: 'success', message: 'Friend request accepted!' });
+        setTimeout(() => setNotification({ type: '', message: '' }), 5000);
+      } else {
+        setNotification({ type: 'error', message: 'Failed to accept friend request' });
+        setTimeout(() => setNotification({ type: '', message: '' }), 5000);
+      }
+    } catch (error) {
+      console.error('Error accepting friend request:', error);
+      setNotification({ type: 'error', message: 'Failed to accept friend request' });
+      setTimeout(() => setNotification({ type: '', message: '' }), 5000);
+    }
   };
 
-  const declineRequest = (requestId) => {
-    setFriendRequests(friendRequests.filter(req => req.id !== requestId));
+  const declineRequest = async (requestId) => {
+    try {
+      const response = await fetch('/api/friends/decline', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'user-id': user.uid
+        },
+        body: JSON.stringify({ requestId })
+      });
+
+      if (response.ok) {
+        setFriendRequests(friendRequests.filter(req => req._id !== requestId));
+        setNotification({ type: 'success', message: 'Friend request declined' });
+        setTimeout(() => setNotification({ type: '', message: '' }), 5000);
+      } else {
+        setNotification({ type: 'error', message: 'Failed to decline friend request' });
+        setTimeout(() => setNotification({ type: '', message: '' }), 5000);
+      }
+    } catch (error) {
+      console.error('Error declining friend request:', error);
+      setNotification({ type: 'error', message: 'Failed to decline friend request' });
+      setTimeout(() => setNotification({ type: '', message: '' }), 5000);
+    }
   };
+
+  if (!user) {
+    return (
+      <>
+        <Navigation />
+        <div className="min-h-screen flex items-center justify-center">
+          <p className="text-gray-600">Please log in to search for friends.</p>
+        </div>
+      </>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-base-200">
-      {/* Navigation */}
-      <nav className="navbar bg-base-100 shadow-md border-b border-base-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-8">
-              <Link href="/" className="btn btn-ghost text-xl font-bold">
-                🏘️ LocalLens
-              </Link>
-              <div className="flex gap-4">
-                <Link href="/friends/search" className="btn btn-ghost btn-sm btn-active">
-                  Find Friends
-                </Link>
-                <Link href="/friends/chat" className="btn btn-ghost btn-sm">
-                  Messages
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
-
+      <Navigation />
+      
       {/* Main Content */}
       <div className="max-w-4xl mx-auto p-6">
         {/* Notification Toast */}
@@ -185,30 +239,39 @@ export default function FriendsSearchPage() {
             {searchResults.length > 0 && (
               <div className="space-y-3">
                 <h2 className="text-xl font-semibold mb-4">Search Results ({searchResults.length})</h2>
-                {searchResults.map((user) => (
+                {searchResults.map((foundUser) => (
                   <div
-                    key={user.id}
+                    key={foundUser._id}
                     className="card bg-base-100 shadow-md hover:shadow-lg transition"
                   >
                     <div className="card-body flex-row items-center justify-between">
                     <div className="flex items-center gap-4">
                       <img
-                        src={user.avatar}
-                        alt={user.name}
+                        src={foundUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(foundUser.name)}&background=f39c12&color=fff`}
+                        alt={foundUser.name}
                         className="w-14 h-14 rounded-full"
                       />
                       <div>
-                          <h3 className="font-semibold text-lg text-base-content">{user.name}</h3>
-                          <p className="text-sm text-base-content/70">{user.email}</p>
+                          <h3 className="font-semibold text-lg text-base-content">{foundUser.name}</h3>
+                          <p className="text-sm text-base-content/70">{foundUser.email}</p>
                       </div>
                     </div>
-                    <button
-                      onClick={() => sendFriendRequest(user.id)}
-                      disabled={user.requestSent}
-                        className={`btn ${user.requestSent ? 'btn-disabled' : 'btn-success'}`}
-                    >
-                      {user.requestSent ? '✓ Request Sent' : '+ Add Friend'}
-                    </button>
+                    {foundUser.isAlreadyFriend ? (
+                      <span className="btn btn-disabled">
+                        ✓ Friends
+                      </span>
+                    ) : foundUser.requestSent ? (
+                      <span className="btn btn-disabled">
+                        ✓ Request Sent
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => sendFriendRequest(foundUser._id)}
+                        className="btn btn-success"
+                      >
+                        + Add Friend
+                      </button>
+                    )}
                     </div>
                   </div>
                 ))}
@@ -256,13 +319,13 @@ export default function FriendsSearchPage() {
               <div className="space-y-3">
                 {friendRequests.map((request) => (
                   <div
-                    key={request.id}
+                    key={request._id}
                     className="card bg-base-100 shadow-md hover:shadow-lg transition"
                   >
                     <div className="card-body flex-row items-center justify-between">
                     <div className="flex items-center gap-4">
                       <img
-                        src={request.sender.avatar}
+                        src={request.sender.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(request.sender.name)}&background=f39c12&color=fff`}
                         alt={request.sender.name}
                         className="w-14 h-14 rounded-full"
                       />
@@ -276,13 +339,13 @@ export default function FriendsSearchPage() {
                     </div>
                     <div className="flex gap-2">
                       <button 
-                        onClick={() => acceptRequest(request.id)}
+                        onClick={() => acceptRequest(request._id)}
                           className="btn btn-primary"
                       >
                         Accept
                       </button>
                       <button 
-                        onClick={() => declineRequest(request.id)}
+                        onClick={() => declineRequest(request._id)}
                           className="btn btn-error"
                       >
                         Decline

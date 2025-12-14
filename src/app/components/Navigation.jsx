@@ -19,75 +19,243 @@ function Navigation() {
   };
 
   return (
-    <div className="navbar bg-base-100 shadow-md">
-      <div className="flex-1">
-        <Link href="/" className="btn btn-ghost text-xl font-bold">
-          🏘️ LocalLens
-        </Link>
-      </div>
-      <div className="flex-none">
-        <ul className="menu menu-horizontal px-1 gap-2">
+    <nav style={styles.nav}>
+      {/* Logo/Title - LEFT */}
+      <h1 style={styles.title}>🏘️ LocalLens</h1>
+
+      {/* Navigation Links - RIGHT EDGE */}
+      <ul style={styles.list}>
+        <li style={styles.listItem}>
+          <Link 
+            href="/" 
+            style={styles.link}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = '#e48a04';
+              e.target.style.color = 'white';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = 'transparent';
+              e.target.style.color = '#2c3e50';
+            }}
+          >
+            Home
+          </Link>
+        </li>
+
         {user ? (
           <>
-              <li>
-                <Link href="/map" className="btn btn-ghost">
+            <li style={styles.listItem}>
+              <Link 
+                href="/map" 
+                style={styles.link}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = '#e48a04';
+                  e.target.style.color = 'white';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'transparent';
+                  e.target.style.color = '#2c3e50';
+                }}
+              >
                 Map
               </Link>
             </li>
-              <li>
-                <Link href="/incidents" className="btn btn-ghost">
+            <li style={styles.listItem}>
+              <Link 
+                href="/incidents" 
+                style={styles.link}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = '#e48a04';
+                  e.target.style.color = 'white';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'transparent';
+                  e.target.style.color = '#2c3e50';
+                }}
+              >
                 Incidents
               </Link>
             </li>
-              <li>
-                <Link href="/feed" className="btn btn-ghost">
+            <li style={styles.listItem}>
+              <Link 
+                href="/feed" 
+                style={styles.link}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = '#e48a04';
+                  e.target.style.color = 'white';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'transparent';
+                  e.target.style.color = '#2c3e50';
+                }}
+              >
                 Feed
               </Link>
             </li>
-              <li>
-                <Link href="/friends/search" className="btn btn-ghost">
+            <li style={styles.listItem}>
+              <Link 
+                href="/friends/search" 
+                style={styles.link}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = '#e48a04';
+                  e.target.style.color = 'white';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'transparent';
+                  e.target.style.color = '#2c3e50';
+                }}
+              >
                 Friends
               </Link>
             </li>
-              <li>
-                <Link href="/friends/chat" className="btn btn-ghost">
+            <li style={styles.listItem}>
+              <Link 
+                href="/friends/chat" 
+                style={styles.link}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = '#e48a04';
+                  e.target.style.color = 'white';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'transparent';
+                  e.target.style.color = '#2c3e50';
+                }}
+              >
                 Messages
               </Link>
             </li>
-              <li>
-                <Link href="/events" className="btn btn-ghost">
+            <li style={styles.listItem}>
+              <Link 
+                href="/events" 
+                style={styles.link}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = '#e48a04';
+                  e.target.style.color = 'white';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'transparent';
+                  e.target.style.color = '#2c3e50';
+                }}
+              >
                 Events
               </Link>
             </li>
-              <li>
-                <Link href="/profile" className="btn btn-ghost">
+            <li style={styles.listItem}>
+              <Link 
+                href="/profile" 
+                style={styles.link}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = '#e48a04';
+                  e.target.style.color = 'white';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'transparent';
+                  e.target.style.color = '#2c3e50';
+                }}
+              >
                 Profile
               </Link>
             </li>
-              <li>
-                <button onClick={handleLogout} className="btn btn-ghost">
+            <li style={styles.listItem}>
+              <button
+                onClick={handleLogout}
+                style={styles.link}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = '#e48a04';
+                  e.target.style.color = 'white';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'transparent';
+                  e.target.style.color = '#2c3e50';
+                }}
+              >
                 Logout
               </button>
             </li>
           </>
         ) : (
           <>
-              <li>
-                <Link href="/login" className="btn btn-ghost">
+            <li style={styles.listItem}>
+              <Link 
+                href="/login" 
+                style={styles.link}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = '#e48a04';
+                  e.target.style.color = 'white';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'transparent';
+                  e.target.style.color = '#2c3e50';
+                }}
+              >
                 Login
               </Link>
             </li>
-              <li>
-                <Link href="/signup" className="btn btn-primary">
+            <li style={styles.listItem}>
+              <Link 
+                href="/signup" 
+                style={styles.link}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = '#e48a04';
+                  e.target.style.color = 'white';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'transparent';
+                  e.target.style.color = '#2c3e50';
+                }}
+              >
                 Sign Up
               </Link>
             </li>
           </>
         )}
       </ul>
-      </div>
-    </div>
+    </nav>
   );
 }
+
+const styles = {
+  nav: {
+    backgroundColor: '#ffffff',
+    color: '#2c3e50',
+    padding: '1rem 2rem',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+    position: 'sticky',
+    top: 0,
+    zIndex: 1000,
+  },
+  title: {
+    margin: 0,
+    fontSize: '1.5rem',
+    color: '#2c3e50',
+    fontWeight: 'bold',
+  },
+  list: {
+    listStyle: 'none',
+    display: 'flex',
+    gap: '2rem',
+    padding: 0,
+    margin: 0,
+  },
+  listItem: {
+    display: 'inline',
+  },
+  link: {
+    color: '#2c3e50',
+    textDecoration: 'none',
+    fontSize: '1.1rem',
+    fontWeight: '500',
+    padding: '0.5rem 1rem',
+    borderRadius: '4px',
+    transition: 'all 0.3s ease',
+    display: 'inline-block',
+    border: 'none',
+    backgroundColor: 'transparent',
+    cursor: 'pointer',
+  }
+};
 
 export default Navigation;

@@ -369,7 +369,7 @@ export default function YardSaleDetailPage() {
                           </svg>
                           Price Range
                         </div>
-                        <p className="text-base-content font-semibold text-primary">{yardSale.priceRange}</p>
+                        <p className="font-semibold text-primary">{yardSale.priceRange}</p>
                       </div>
                     )}
 

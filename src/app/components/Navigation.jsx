@@ -96,6 +96,14 @@ function Navigation() {
                   Events
                 </Link>
                 <Link 
+                  href="/yardsales" 
+                  className="px-4 py-2 rounded text-gray-700 transition font-medium"
+                  onMouseEnter={(e) => { e.target.style.backgroundColor = '#e48a04'; e.target.style.color = 'white'; }}
+                  onMouseLeave={(e) => { e.target.style.backgroundColor = 'transparent'; e.target.style.color = '#2c3e50'; }}
+                >
+                  Yard Sales
+                </Link>
+                <Link 
                   href="/profile" 
                   className="px-4 py-2 rounded text-gray-700 transition font-medium"
                   onMouseEnter={(e) => { e.target.style.backgroundColor = '#e48a04'; e.target.style.color = 'white'; }}
@@ -223,6 +231,15 @@ function Navigation() {
                   onMouseLeave={(e) => { e.target.style.backgroundColor = 'transparent'; e.target.style.color = '#2c3e50'; }}
                 >
                   📅 Events
+                </Link>
+                <Link 
+                  href="/yardsales" 
+                  onClick={closeMobileMenu}
+                  className="block px-4 py-3 rounded-lg text-gray-700 transition font-medium"
+                  onMouseEnter={(e) => { e.target.style.backgroundColor = '#e48a04'; e.target.style.color = 'white'; }}
+                  onMouseLeave={(e) => { e.target.style.backgroundColor = 'transparent'; e.target.style.color = '#2c3e50'; }}
+                >
+                  🏪 Yard Sales
                 </Link>
                 <Link 
                   href="/profile" 

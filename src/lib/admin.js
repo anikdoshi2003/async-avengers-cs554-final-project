@@ -1,4 +1,4 @@
-import { admin, blog, users } from '@/mongoConfig/mongoCollections.js';
+import { admin, posts, users } from '@/mongoConfig/mongoCollections.js';
 import { ObjectId } from 'mongodb';
 
 const getInfoByUid = async (uid) => {
@@ -7,7 +7,7 @@ const getInfoByUid = async (uid) => {
   const adminCollection = await users();
   const adminData = await adminCollection.findOne({ _id: uid });
 
-  if (!adminData) throw 'No user found with the provided UID';
+  if (!adminData) throw 'No admin user found with the provided UID';
 
   return adminData;
 }
@@ -29,7 +29,7 @@ export const isUserAdmin = async (uid) => {
     const adminCollection = await users();
     const userData = await adminCollection.findOne({ firebaseUid: uid });
 
-    if (!userData) throw 'No user found with the provided UID';
+    if (!userData) throw 'No admin user found with the provided UID';
 
     if (userData.role && userData.role === 'admin') {
         return true;
@@ -44,7 +44,7 @@ export const reportBlog = async (blogId, reason, reportedByUid) => {
     if (!reason) throw 'You must provide a reason for reporting';
     if (!reportedByUid) throw 'You must provide the UID of the reporter';
 
-    const blogCollection = await blog();
+    const blogCollection = await posts();
     const usersCollection = await users();
 
     const blogData = await blogCollection.findOne({ _id: new ObjectId(blogId) });
@@ -75,7 +75,7 @@ export const getPageOfReports = async (page = 1, pageSize = 10, uid) => {
     throw new Error('Unauthorized');
   }
 
-  const blogCollection = await blog();
+  const blogCollection = await posts();
   const adminCollection = await admin();
 
   const skips = pageSize * (page - 1);
@@ -100,12 +100,11 @@ export const getPageOfReports = async (page = 1, pageSize = 10, uid) => {
 
     const blogExists = await blogCollection.findOne({ _id: blogId });
     if (blogExists) {
-        const reporteeEmail = await getInfoByid(blogExists.postedBy)
+        const reporteeEmail = await getInfoByUid(blogExists.user)
         report.reporteeEmail = reporteeEmail.email
-        report.title = blogExists.title
-        report.body = blogExists.body
-        report.postedBy = blogExists.postedBy
-        report.postedOn = blogExists.postedOn
+        report.body = blogExists.content
+        report.postedBy = blogExists.user
+        report.postedOn = blogExists.createdAt
         report.location = blogExists.location
         filtered.push(report);
     }
@@ -156,7 +155,7 @@ export const deletePostByReport = async (blogId, uid) => {
     const isAdmin = await isUserAdmin(uid);
     if (!isAdmin) throw 'User is not authorized to delete posts';
 
-    const blogCollection = await blog();
+    const blogCollection = await posts();
     const adminCollection = await admin();
 
     const deleteInfo = await blogCollection.deleteOne({ _id: new ObjectId(blogId) });
@@ -181,18 +180,3 @@ export const ignoreReport = async (reportId, uid) => {
 
     return { deleted: true };
 };
-
-
-export const banUser = async (userId, uid) => {
-    if (!reportId) throw new Error('You must provide a reportId');
-    if (!uid) throw new Error('You must provide a UID');
-
-    const isAdmin = await isUserAdmin(uid);
-    if (!isAdmin) throw new Error('User is not authorized to delete posts');
-
-    const usersCollection = await users();
-
-    const updated = await usersCollection.findOneAndUpdate({_id: userId}, {})
-
-
-}

@@ -1,15 +1,15 @@
-// src/app/api/map/incidents/route.js
+// src/app/api/map/events/route.js
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
-import Incident from '@/models/Incident';
-import User from '@/models/User'; 
+import Event from '@/models/Event';
+import User from '@/models/User';
 import { verifyToken } from '@/firebase/verifyToken';
-import { generateCacheKey, getCachedIncidents, setCachedIncidents, invalidateIncidentCache } from '@/lib/incidentCache';
+import { generateCacheKey, getCachedEvents, setCachedEvents, invalidateEventCache } from '@/lib/eventCache';
 import { getRedisClient } from '@/lib/redis';
 
 /**
- * GET /api/map/incidents
- * Fetches incidents within a 1 mile radius of the provided coordinates
+ * GET /api/map/events
+ * Fetches events within a 1 mile radius of the provided coordinates
  * Query params:
  * - lat: Latitude of center point
  * - lng: Longitude of center point
@@ -19,12 +19,11 @@ import { getRedisClient } from '@/lib/redis';
  */
 export async function GET(request) {
   try {
-
     let decodedToken = null;
     try {
       decodedToken = await verifyToken(request);
     } catch (authError) {
-      console.warn('[Map Incidents] Authentication failed, using public data:', authError.message);
+      console.warn('[Map Events] Authentication failed, using public data:', authError.message);
     }
 
     const { searchParams } = new URL(request.url);
@@ -69,9 +68,9 @@ export async function GET(request) {
 
     if (invalidate) {
       try {
-        await invalidateIncidentCache();
+        await invalidateEventCache();
       } catch (error) {
-        console.warn('[Map Incidents] Error invalidating cache:', error.message);
+        console.warn('[Map Events] Error invalidating cache:', error.message);
       }
     }
 
@@ -90,12 +89,12 @@ export async function GET(request) {
             if (cacheAge > twoMinutesInSeconds) {
               await client.del(cacheKey);
             } else {
-              const incidents = parsed.incidents || null;
-              if (incidents) {
+              const events = parsed.events || null;
+              if (events) {
                 return NextResponse.json({
                   success: true,
-                  incidents: incidents,
-                  count: incidents.length,
+                  events: events,
+                  count: events.length,
                   center: { lat, lng },
                   radius: radiusInMiles,
                   zipcode: zipcode || null,
@@ -106,64 +105,65 @@ export async function GET(request) {
           }
         }
       } catch (cacheError) {
-        console.warn('[Map Incidents] Cache read failed, querying MongoDB:', cacheError.message);
+        console.warn('[Map Events] Cache read failed, querying MongoDB:', cacheError.message);
       }
-    } 
+    }
+
     await connectDB();
 
-    const query = {
-      visibility: 'public',
-      'location.lat': { $gte: minLat, $lte: maxLat },
-      'location.lng': { $gte: minLng, $lte: maxLng }
-    };
+    const zip5 = zipcode ? zipcode.replace(/-/g, '').slice(0, 5) : null;
 
-    const incidents = await Incident.find(query)
-      .populate('reportedBy', 'firebaseUid firstName lastName photoURL')
-      .sort({ createdAt: -1 })
+    let query = {};
+    if (zip5) {
+      query = { pincode: zip5 };
+    } else {
+      query = {
+        'location.lat': { $gte: minLat, $lte: maxLat },
+        'location.lng': { $gte: minLng, $lte: maxLng },
+      };
+    }
+
+    const events = await Event.find(query)
+      .populate('createdBy', 'firebaseUid firstName lastName photoURL')
+      .sort({ eventDate: 1 })
       .limit(100)
       .lean();
 
     const now = new Date();
-    const threeDaysInMs = 3 * 24 * 60 * 60 * 1000;
-    const tenDaysInMs = 10 * 24 * 60 * 60 * 1000;
 
-    const formattedIncidents = incidents
-      .filter(incident => {
-        const reportedAt = new Date(incident.reportedAt);
-        const ageInMs = now - reportedAt;
-        return ageInMs <= tenDaysInMs;
+    const formattedEvents = events
+      .filter(event => {
+        const eventDate = new Date(event.eventDate);
+        return eventDate >= now;
       })
-      .map(incident => {
-        const reportedAt = new Date(incident.reportedAt);
-        const timeToOld = new Date(reportedAt.getTime() + threeDaysInMs);
-        
-        return {
-          _id: incident._id.toString(),
-          location: {
-            lat: incident.location.lat,
-            lng: incident.location.lng
-          },
-          incidentType: incident.incidentType,
-          description: incident.description,
-          reportedAt: incident.reportedAt,
-          timeToOld: timeToOld.toISOString(),
-          reportedBy: incident.reportedBy ? {
-            firebaseUid: incident.reportedBy.firebaseUid,
-            firstName: incident.reportedBy.firstName,
-            lastName: incident.reportedBy.lastName,
-            photoURL: incident.reportedBy.photoURL
-          } : null
-        };
-      });
+      .map(event => ({
+        _id: event._id.toString(),
+        title: event.title,
+        description: event.description,
+        pincode: event.pincode,
+        location: {
+          lat: event.location.lat,
+          lng: event.location.lng,
+        },
+        eventDate: event.eventDate,
+        createdBy: event.createdBy
+          ? {
+              firebaseUid: event.createdBy.firebaseUid,
+              firstName: event.createdBy.firstName,
+              lastName: event.createdBy.lastName,
+              photoURL: event.createdBy.photoURL,
+            }
+          : null,
+      }));
 
-    setCachedIncidents(cacheKey, formattedIncidents, 120).catch((error) => {
-      console.warn('[Map Incidents] Error caching results:', error.message);
+    setCachedEvents(cacheKey, formattedEvents, 120).catch((error) => {
+      console.warn('[Map Events] Error caching results:', error.message);
     });
 
     return NextResponse.json({
       success: true,
-      incidents: formattedIncidents,
-      count: formattedIncidents.length,
+      events: formattedEvents,
+      count: formattedEvents.length,
       center: { lat, lng },
       radius: radiusInMiles,
       zipcode: zipcode || null,
@@ -171,10 +171,10 @@ export async function GET(request) {
     });
 
   } catch (error) {
-    console.error('[Map Incidents] Error fetching incidents:', error);
+    console.error('Error fetching map events:', error);
     return NextResponse.json(
       { 
-        error: 'Failed to fetch incidents',
+        error: 'Failed to fetch events',
         message: error.message 
       },
       { status: 500 }

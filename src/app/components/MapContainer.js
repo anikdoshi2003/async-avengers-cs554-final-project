@@ -13,17 +13,12 @@ const MapContainer = ({ center, zoom, viewportBounds, filters, zipcode }) => {
   const [incidents, setIncidents] = useState([]);
   const [selectedIncident, setSelectedIncident] = useState(null);
   const [loadingIncidents, setLoadingIncidents] = useState(false);
-  const hasFetchedRef = useRef(false);
+  const hasFetchedIncidentsRef = useRef(false);
 
-  // Debug: Log when incidents change
-  useEffect(() => {
-    console.log('[MapContainer] Incidents state updated:', incidents.length, 'incidents');
-    console.log('[MapContainer] Filters.showIncidents:', filters.showIncidents);
-    if (incidents.length > 0) {
-      console.log('[MapContainer] First incident:', incidents[0]);
-    }
-  }, [incidents, filters.showIncidents]);
-
+  const [events, setEvents] = useState([]);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [loadingEvents, setLoadingEvents] = useState(false);
+  const hasFetchedEventsRef = useRef(false);
 
   useEffect(() => {
     if (!mapRef.current || !center) return;
@@ -49,7 +44,6 @@ const MapContainer = ({ center, zoom, viewportBounds, filters, zipcode }) => {
           mapRef.current.setZoom(zoom);
         }
       } else {
-        // Otherwise, pan to center and set zoom
         mapRef.current.panTo(center);
         mapRef.current.setZoom(zoom);
       }
@@ -62,8 +56,8 @@ const MapContainer = ({ center, zoom, viewportBounds, filters, zipcode }) => {
     disableDefaultUI: false,
     clickableIcons: true,
     scrollwheel: true,
-    streetViewControl: false, // Remove street view pegman icon
-    mapTypeControl: false, // Remove map/satellite view toggle
+    streetViewControl: false, 
+    mapTypeControl: false,
     styles: [
       {
         featureType: 'poi',
@@ -73,22 +67,17 @@ const MapContainer = ({ center, zoom, viewportBounds, filters, zipcode }) => {
     ],
   }), []);
 
-  // Fetch incidents when center changes and incidents filter is enabled
   useEffect(() => {
-    // Check conditions - we don't need Google Maps loaded to fetch data, only to display markers
     if (!center || typeof center.lat !== 'number' || typeof center.lng !== 'number') {
-      console.log('[MapContainer] No valid center, skipping incidents fetch', center);
       return;
     }
     
     if (!filters.showIncidents) {
-      console.log('[MapContainer] Incidents filter disabled, skipping fetch');
       return;
     }
 
-    // Create a location key to track if we've fetched for this location
     const locationKey = `${center.lat.toFixed(4)}_${center.lng.toFixed(4)}_${zipcode || 'nozip'}`;
-    const isFirstFetch = !hasFetchedRef.current || hasFetchedRef.current !== locationKey;
+    const isFirstFetch = !hasFetchedIncidentsRef.current || hasFetchedIncidentsRef.current !== locationKey;
 
     console.log('[MapContainer] Fetching incidents for:', { lat: center.lat, lng: center.lng, zipcode, isFirstFetch });
 
@@ -96,7 +85,6 @@ const MapContainer = ({ center, zoom, viewportBounds, filters, zipcode }) => {
       try {
         setLoadingIncidents(true);
         
-        // Get Firebase ID token for authentication
         const { auth } = await import('@/firebase/config');
         const { getAuth } = await import('firebase/auth');
         const currentAuth = auth || getAuth();
@@ -117,12 +105,10 @@ const MapContainer = ({ center, zoom, viewportBounds, filters, zipcode }) => {
 
         if (isFirstFetch) {
           params.append('refresh', 'true');
-          hasFetchedRef.current = locationKey;
-          console.log('[MapContainer] First fetch for location, forcing refresh to bypass cache');
+          hasFetchedIncidentsRef.current = locationKey;
         }
 
         const url = `/api/map/incidents?${params.toString()}`;
-        console.log('[MapContainer] Fetching from:', url);
 
         const response = await fetch(url, {
           headers: headers
@@ -134,10 +120,7 @@ const MapContainer = ({ center, zoom, viewportBounds, filters, zipcode }) => {
         }
 
         const data = await response.json();
-        console.log('[MapContainer] Received incidents:', data.count || 0);
-        console.log('[MapContainer] Incidents data:', data.incidents);
         const incidentsArray = data.incidents || [];
-        console.log('[MapContainer] Setting incidents state with:', incidentsArray.length, 'items');
         setIncidents(incidentsArray);
       } catch (error) {
         console.error('[MapContainer] Error fetching incidents:', error);
@@ -150,7 +133,63 @@ const MapContainer = ({ center, zoom, viewportBounds, filters, zipcode }) => {
     fetchIncidents();
   }, [center, filters.showIncidents, zipcode]);
 
-  // Loading state
+  useEffect(() => {
+    
+    const locationKey = `${center.lat.toFixed(4)}_${center.lng.toFixed(4)}_${zipcode || 'nozip'}`;
+    const isFirstFetch = !hasFetchedEventsRef.current || hasFetchedEventsRef.current !== locationKey;
+
+    const fetchEvents = async () => {
+      try {
+        setLoadingEvents(true);
+        
+        const { auth } = await import('@/firebase/config');
+        const { getAuth } = await import('firebase/auth');
+        const currentAuth = auth || getAuth();
+        const idToken = currentAuth?.currentUser ? await currentAuth.currentUser.getIdToken() : null;
+
+        const headers = {};
+        if (idToken) {
+          headers['Authorization'] = `Bearer ${idToken}`;
+        }
+
+        const params = new URLSearchParams({
+          lat: center.lat.toString(),
+          lng: center.lng.toString(),
+        });
+        if (zipcode) {
+          params.append('zipcode', zipcode);
+        }
+
+        if (isFirstFetch) {
+          params.append('refresh', 'true');
+          hasFetchedEventsRef.current = locationKey;
+        }
+
+        const url = `/api/map/events?${params.toString()}`;
+
+        const response = await fetch(url, {
+          headers: headers
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Failed to fetch events');
+        }
+
+        const data = await response.json();
+        const eventsArray = data.events || [];
+        setEvents(eventsArray);
+      } catch (error) {
+        console.error('[MapContainer] Error fetching events:', error);
+        setEvents([]);
+      } finally {
+        setLoadingEvents(false);
+      }
+    };
+
+    fetchEvents();
+  }, [center, filters.showEvents, zipcode]);
+
   if (isLoadingKey) {
     return (
       <div className="flex items-center justify-center h-full bg-base-200">
@@ -162,34 +201,6 @@ const MapContainer = ({ center, zoom, viewportBounds, filters, zipcode }) => {
     );
   }
 
-  // Error state - only show if we need API key but don't have it
-  if (!isGoogleMapsLoaded && !apiKey) {
-    return (
-      <div className="flex items-center justify-center h-full bg-base-200">
-        <div className="card bg-base-100 shadow-xl max-w-md">
-          <div className="card-body">
-            <h2 className="card-title text-base-content">Google Maps API Key Required</h2>
-            <p className="text-base-content/70">
-              Failed to load API key
-            </p>
-            <div className="bg-base-200 p-4 rounded-lg text-left text-sm mt-4">
-              <p className="font-semibold mb-2">Setup Instructions:</p>
-              <ol className="list-decimal list-inside space-y-2 text-base-content/70">
-                <li>Create a GitHub Gist with your API key in this format:</li>
-                <code className="block bg-base-300 px-2 py-1 rounded my-2">
-                  NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your_actual_api_key_here
-                </code>
-                <li>Get the raw URL from your Gist (click "Raw" button)</li>
-                <li>Update <code className="bg-base-300 px-1 rounded">GIST_RAW_URL</code> in <code className="bg-base-300 px-1 rounded">src/lib/gistApiKey.js</code></li>
-              </ol>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Map component - render directly if Google Maps is already loaded, otherwise use LoadScript
   const mapComponent = (
     <GoogleMap
       mapContainerStyle={{ width: '100%', height: '100%' }}
@@ -198,14 +209,11 @@ const MapContainer = ({ center, zoom, viewportBounds, filters, zipcode }) => {
       options={mapOptions}
       onLoad={(map) => {
         mapRef.current = map;
-        // Center map on initial load
         try {
           if (viewportBounds) {
             let boundsToFit = viewportBounds;
             
-            // If viewportBounds is a plain object (not a LatLngBounds instance), convert it
             if (viewportBounds.northeast && viewportBounds.southwest && typeof viewportBounds.getNorthEast !== 'function') {
-              // It's a plain object, convert to LatLngBounds
               boundsToFit = new window.google.maps.LatLngBounds(
                 new window.google.maps.LatLng(viewportBounds.southwest.lat, viewportBounds.southwest.lng),
                 new window.google.maps.LatLng(viewportBounds.northeast.lat, viewportBounds.northeast.lng)
@@ -231,9 +239,7 @@ const MapContainer = ({ center, zoom, viewportBounds, filters, zipcode }) => {
           return null;
         }
         
-        // Check if incident is old (older than 3 days)
         const now = new Date();
-        // Calculate timeToOld if not provided (for cached data compatibility)
         let timeToOld = incident.timeToOld ? new Date(incident.timeToOld) : null;
         if (!timeToOld && incident.reportedAt) {
           const reportedAt = new Date(incident.reportedAt);
@@ -242,10 +248,8 @@ const MapContainer = ({ center, zoom, viewportBounds, filters, zipcode }) => {
         }
         const isOld = timeToOld && now > timeToOld;
         
-        // Determine marker color: grey if old, red if recent
-        const markerColor = isOld ? '#6B7280' : '#DC2626'; // grey-500 if old, red-600 if recent
+        const markerColor = isOld ? '#6B7280' : '#DC2626';
         
-        // Create custom icon for incident marker (red or grey circle with exclamation)
         const iconUrl = typeof window !== 'undefined' && window.google
           ? 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
               <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
@@ -253,9 +257,7 @@ const MapContainer = ({ center, zoom, viewportBounds, filters, zipcode }) => {
                 <text x="16" y="22" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#FFFFFF" text-anchor="middle">!</text>
               </svg>
             `)
-          : isOld 
-            ? 'https://maps.google.com/mapfiles/ms/icons/grey-dot.png'
-            : 'https://maps.google.com/mapfiles/ms/icons/red-dot.png'; // Fallback
+          : 'https://maps.google.com/mapfiles/ms/icons/red-dot.png'; // Fallback
 
         return (
           <Marker
@@ -268,8 +270,42 @@ const MapContainer = ({ center, zoom, viewportBounds, filters, zipcode }) => {
               anchor: new window.google.maps.Point(16, 32),
             } : undefined}
             onClick={() => {
-              console.log('[MapContainer] Marker clicked:', incident);
               setSelectedIncident(incident);
+            }}
+          />
+        );
+      })}
+
+      {/* Event Markers */}
+      {filters.showEvents && events.length > 0 && events.map((event) => {
+        if (!event.location || typeof event.location.lat !== 'number' || typeof event.location.lng !== 'number') {
+          console.warn('[MapContainer] Invalid event location:', event);
+          return null;
+        }
+
+        const markerColor = '#7C3AED';
+
+        const iconUrl = typeof window !== 'undefined' && window.google
+          ? 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+              <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
+                <circle cx="18" cy="18" r="16" fill="${markerColor}" stroke="#FFFFFF" stroke-width="2"/>
+                <text x="18" y="24" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#FFFFFF" text-anchor="middle">📅</text>
+              </svg>
+            `)
+          : 'https://maps.google.com/mapfiles/ms/icons/purple-dot.png'; 
+
+        return (
+          <Marker
+            key={event._id}
+            position={{ lat: event.location.lat, lng: event.location.lng }}
+            title={event.title || 'Event'}
+            icon={typeof window !== 'undefined' && window.google ? {
+              url: iconUrl,
+              scaledSize: new window.google.maps.Size(36, 36),
+              anchor: new window.google.maps.Point(18, 36),
+            } : undefined}
+            onClick={() => {
+              setSelectedEvent(event);
             }}
           />
         );
@@ -278,7 +314,6 @@ const MapContainer = ({ center, zoom, viewportBounds, filters, zipcode }) => {
     </GoogleMap>
   );
 
-  // Helper function to format relative time
   const getRelativeTime = (date) => {
     const now = new Date();
     const incidentDate = new Date(date);
@@ -291,7 +326,6 @@ const MapContainer = ({ center, zoom, viewportBounds, filters, zipcode }) => {
     return incidentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
-  // Helper function to get incident type icon
   const getIncidentTypeIcon = (type) => {
     const icons = {
       'Accident': '🚗',
@@ -302,7 +336,6 @@ const MapContainer = ({ center, zoom, viewportBounds, filters, zipcode }) => {
       'Infrastructure': '🏗️',
       'Other': '📋'
     };
-    // Check for partial matches (case-insensitive)
     const typeLower = type?.toLowerCase() || '';
     if (typeLower.includes('theft') || typeLower.includes('stolen')) return '🚨';
     if (typeLower.includes('accident') || typeLower.includes('crash')) return '🚗';
@@ -311,7 +344,6 @@ const MapContainer = ({ center, zoom, viewportBounds, filters, zipcode }) => {
     return icons[type] || '📍';
   };
 
-  // Helper function to get incident type color
   const getIncidentTypeColor = (type) => {
     const colors = {
       'Accident': 'badge-error',
@@ -322,7 +354,6 @@ const MapContainer = ({ center, zoom, viewportBounds, filters, zipcode }) => {
       'Infrastructure': 'badge-primary',
       'Other': 'badge-neutral'
     };
-    // Check for partial matches (case-insensitive)
     const typeLower = type?.toLowerCase() || '';
     if (typeLower.includes('theft') || typeLower.includes('stolen')) return 'badge-error';
     if (typeLower.includes('accident') || typeLower.includes('crash')) return 'badge-error';
@@ -330,7 +361,6 @@ const MapContainer = ({ center, zoom, viewportBounds, filters, zipcode }) => {
     return colors[type] || 'badge-neutral';
   };
 
-  // If Google Maps is already loaded, render map directly without LoadScript
   if (isGoogleMapsLoaded) {
     return (
       <>
@@ -345,11 +375,17 @@ const MapContainer = ({ center, zoom, viewportBounds, filters, zipcode }) => {
             getIncidentTypeIcon={getIncidentTypeIcon}
           />
         )}
+        {/* Event Detail Modal */}
+        {selectedEvent && (
+          <EventDetailModal
+            event={selectedEvent}
+            onClose={() => setSelectedEvent(null)}
+          />
+        )}
       </>
     );
   }
 
-  // Otherwise, use LoadScript to load Google Maps
   return (
     <LoadScript
       googleMapsApiKey={apiKey}
@@ -375,11 +411,17 @@ const MapContainer = ({ center, zoom, viewportBounds, filters, zipcode }) => {
           getIncidentTypeIcon={getIncidentTypeIcon}
         />
       )}
+      {/* Event Detail Modal */}
+      {selectedEvent && (
+        <EventDetailModal
+          event={selectedEvent}
+          onClose={() => setSelectedEvent(null)}
+        />
+      )}
     </LoadScript>
   );
 };
 
-// Incident Detail Modal Component
 const IncidentDetailModal = ({ incident, onClose, getRelativeTime, getIncidentTypeColor, getIncidentTypeIcon }) => {
   if (!incident) return null;
 
@@ -560,6 +602,209 @@ const IncidentDetailModal = ({ incident, onClose, getRelativeTime, getIncidentTy
             className="btn btn-primary w-full"
           >
             View All Incidents →
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const EventDetailModal = ({ event, onClose }) => {
+  if (!event) return null;
+
+  const formatDateTime = (dateString) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    }).format(date);
+  };
+
+  return (
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div className="card bg-base-100 shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col border border-base-300 animate-fade-in-up">
+        {/* Header */}
+        <div className="card-body pb-4 border-b border-base-300 bg-gradient-to-r from-secondary/10 via-primary/10 to-secondary/10">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-xl bg-secondary/20 flex items-center justify-center text-4xl shadow-lg">
+                📅
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <h2 className="text-2xl font-bold text-base-content line-clamp-1">
+                    {event.title || 'Event Details'}
+                  </h2>
+                </div>
+                <p className="text-sm text-base-content/60 flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  {event.eventDate ? formatDateTime(event.eventDate) : 'Date not specified'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="btn btn-sm btn-circle btn-ghost hover:bg-base-200 transition-all"
+              aria-label="Close modal"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Scrollable Content */}
+        <div className="overflow-y-auto flex-1">
+          <div className="card-body space-y-6">
+            {/* Description */}
+            {event.description && (
+              <div className="card bg-base-200 border border-base-300">
+                <div className="card-body py-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5 text-base-content/60"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                    <label className="text-xs font-semibold text-base-content/60 uppercase tracking-wider">
+                      Description
+                    </label>
+                  </div>
+                  <p className="text-base text-base-content whitespace-pre-wrap leading-relaxed">
+                    {event.description}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Grid Layout for Details */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Created By */}
+              {event.createdBy && (
+                <div className="card bg-base-200 border border-base-300">
+                  <div className="card-body py-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5 text-base-content/60"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                        />
+                      </svg>
+                      <label className="text-xs font-semibold text-base-content/60 uppercase tracking-wider">
+                        Created By
+                      </label>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {event.createdBy.photoURL ? (
+                        <img
+                          src={event.createdBy.photoURL}
+                          alt={`${event.createdBy.firstName} ${event.createdBy.lastName}`}
+                          className="w-12 h-12 rounded-full border-2 border-base-300"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-primary text-primary-content flex items-center justify-center font-semibold text-lg border-2 border-base-300">
+                          {event.createdBy.firstName?.[0] || event.createdBy.lastName?.[0] || 'U'}
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-semibold text-base-content">
+                          {event.createdBy.firstName} {event.createdBy.lastName}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Zipcode */}
+              {event.pincode && (
+                <div className="card bg-base-200 border border-base-300">
+                  <div className="card-body py-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5 text-base-content/60"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M3 7h18M3 12h18M3 17h18"
+                        />
+                      </svg>
+                      <label className="text-xs font-semibold text-base-content/60 uppercase tracking-wider">
+                        Zipcode
+                      </label>
+                    </div>
+                    <p className="text-sm text-base-content/80 font-mono">
+                      {event.pincode}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="card-body pt-4 border-t border-base-300 bg-base-200 flex flex-col gap-2 md:flex-row md:justify-between md:items-center">
+          <Link
+            href={`/events/${event._id}`}
+            className="btn btn-primary w-full md:w-auto"
+          >
+            View Event Page →
+          </Link>
+          <Link
+            href="/events"
+            className="btn btn-ghost w-full md:w-auto"
+          >
+            View All Events
           </Link>
         </div>
       </div>

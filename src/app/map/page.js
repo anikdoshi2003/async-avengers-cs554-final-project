@@ -1,5 +1,4 @@
 'use client';
-
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/firebase/AuthContext';
@@ -7,7 +6,7 @@ import Navigation from '@/app/components/Navigation';
 import MapContainer from '@/app/components/MapContainer';
 import MapFilters from '@/app/components/MapFilters';
 import WeatherPill from '@/app/components/WeatherPill';
-import { zipcodeToCoords, zipcodeToCoordsGoogle } from '@/lib/geocoding';
+import { zipcodeToCoords } from '@/lib/geocoding';
 import { getGoogleMapsApiKey } from '@/lib/gistApiKey';
 
 export default function MapPage() {
@@ -23,20 +22,17 @@ export default function MapPage() {
   });
 
   const [zipcode, setZipcode] = useState(null);
-  const defaultCenter = { lat: 40.748817, lng: -74.044502 }; // Hoboken, NJ fallback
+  const defaultCenter = { lat: 40.748817, lng: -74.044502 };
   const [mapCenter, setMapCenter] = useState(defaultCenter);
   const [zoom, setZoom] = useState(12);
   const [viewportBounds, setViewportBounds] = useState(null);
-  const [mapKey, setMapKey] = useState(0); // Force map re-render on center change
+  const [mapKey, setMapKey] = useState(0); 
 
-  // Fetch user zipcode from MongoDB and load map location
   useEffect(() => {
-    // Wait for auth to finish loading
     if (authLoading) {
       return;
     }
 
-    // Redirect to login if not authenticated
     if (!user) {
       router.push('/login');
       return;
@@ -47,7 +43,6 @@ export default function MapPage() {
         setLoading(true);
         setError('');
 
-        // Get Firebase ID token for authentication
         const { auth } = await import('@/firebase/config');
         const { getAuth } = await import('firebase/auth');
         const currentAuth = auth || getAuth();
@@ -58,7 +53,6 @@ export default function MapPage() {
           headers['Authorization'] = `Bearer ${idToken}`;
         }
 
-        // Fetch user profile
         const response = await fetch(`/api/users/profile?uid=${encodeURIComponent(user.uid)}`, {
           headers: headers
         });
@@ -70,13 +64,11 @@ export default function MapPage() {
 
         const data = await response.json();
         
-        // Check if user is banned
         if (data.user?.moderation?.banned === true) {
           router.replace('/banned');
           return;
         }
 
-        // Get zipcode from profile (check both zipcode and pincode for compatibility)
         const userZipcode = data.user?.profile?.zipcode || data.user?.profile?.pincode;
         
         if (!userZipcode) {
@@ -87,12 +79,10 @@ export default function MapPage() {
 
         setZipcode(userZipcode);
 
-        // Geocode the zipcode to get coordinates
         let coords;
         let viewport = null;
         
         try {
-          // Try Google Geocoding first
           const apiKey = await getGoogleMapsApiKey();
           const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${userZipcode}&key=${apiKey}`;
           const geocodeResponse = await fetch(geocodeUrl);
@@ -104,23 +94,18 @@ export default function MapPage() {
               lat: result.geometry.location.lat,
               lng: result.geometry.location.lng,
             };
-            viewport = result.geometry.viewport; // Plain object with northeast and southwest
+            viewport = result.geometry.viewport;
           } else {
             throw new Error('Google Geocoding failed');
           }
         } catch (error) {
           console.warn('Google Geocoding failed, trying OpenStreetMap:', error);
-          // Fallback to OpenStreetMap
           const coordsData = await zipcodeToCoords(userZipcode);
           coords = { lat: coordsData.lat, lng: coordsData.lng };
         }
 
-        // Calculate bounds for 2.5-mile radius around the zipcode
-        // Average US zipcode has a radius of ~2.5 miles (covers ~29 square miles)
-        // 1 degree latitude ≈ 69 miles
-        // 2.5 miles ≈ 2.5/69 ≈ 0.036 degrees
         const radiusInMiles = 0.8;
-        const radiusInDegrees = radiusInMiles / 69; // Approximately 0.036 degrees for 2.5 miles
+        const radiusInDegrees = radiusInMiles / 69;
         
         const latRad = (coords.lat * Math.PI) / 180;
         const lngRadiusInDegrees = radiusInDegrees / Math.cos(latRad);
@@ -136,14 +121,10 @@ export default function MapPage() {
           }
         };
         
-        // Set viewport bounds for 2.5-mile radius
-        // We'll convert this to LatLngBounds in the MapContainer when Google Maps is loaded
         setViewportBounds(boundsData);
         
-        // Set a default zoom level (will be overridden by fitBounds)
         let newZoom = 13;
 
-        // Update map center and zoom
         setMapCenter(coords);
         setZoom(newZoom);
         setMapKey(prev => prev + 1);
@@ -158,11 +139,75 @@ export default function MapPage() {
     fetchUserZipcode();
   }, [user, authLoading, router]);
 
+  useEffect(() => {
+    if (authLoading || !user) {
+      return;
+    }
+
+    const loadFilters = async () => {
+      try {
+        const { auth } = await import('@/firebase/config');
+        const { getAuth } = await import('firebase/auth');
+        const currentAuth = auth || getAuth();
+        const idToken = currentAuth?.currentUser ? await currentAuth.currentUser.getIdToken() : null;
+
+        const headers = {};
+        if (idToken) {
+          headers['Authorization'] = `Bearer ${idToken}`;
+        }
+
+        const response = await fetch('/api/map/preferences', {
+          headers,
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const data = await response.json().catch(() => ({}));
+        if (data && data.filters && typeof data.filters === 'object') {
+          setFilters((prev) => ({
+            ...prev,
+            ...data.filters,
+          }));
+        }
+      } catch {
+        
+      }
+    };
+
+    loadFilters();
+  }, [authLoading, user]);
+
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
+
+    const saveFilters = async () => {
+      try {
+        const { auth } = await import('@/firebase/config');
+        const { getAuth } = await import('firebase/auth');
+        const currentAuth = auth || getAuth();
+        const idToken = currentAuth?.currentUser ? await currentAuth.currentUser.getIdToken() : null;
+
+        const headers = {
+          'Content-Type': 'application/json',
+        };
+        if (idToken) {
+          headers['Authorization'] = `Bearer ${idToken}`;
+        }
+
+        await fetch('/api/map/preferences', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ filters: newFilters }),
+        });
+      } catch {
+      }
+    };
+
+    saveFilters();
   };
 
-  // Show loading state
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-base-200 animate-page-transition">
@@ -177,7 +222,6 @@ export default function MapPage() {
     );
   }
 
-  // Show error state if no zipcode
   if (error || !zipcode) {
     return (
       <div className="min-h-screen bg-base-200 animate-page-transition">

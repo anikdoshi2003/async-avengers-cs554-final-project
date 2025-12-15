@@ -355,7 +355,7 @@ export default function FeedPage() {
                             <img
                               src={comment.user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.user.name)}&background=f39c12&color=fff`}
                               alt={comment.user.name}
-                              className="w-8 h-8 rounded-full flex-shrink-0"
+                              className="w-8 h-8 rounded-full shrink-0"
                             />
                             <div className="flex-1">
                               <div className="bg-gray-100 rounded-lg px-3 py-2">
@@ -383,7 +383,7 @@ export default function FeedPage() {
                                       <img
                                         src={reply.user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(reply.user.name)}&background=f39c12&color=fff`}
                                         alt={reply.user.name}
-                                        className="w-6 h-6 rounded-full flex-shrink-0"
+                                        className="w-6 h-6 rounded-full shrink-0"
                                       />
                                       <div className="flex-1">
                                         <div className="bg-gray-100 rounded-lg px-3 py-2">

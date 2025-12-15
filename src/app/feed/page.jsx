@@ -354,30 +354,30 @@ export default function FeedPage() {
     <>
       <Navigation />
       <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto flex gap-6 p-6">
-          {/* Left Sidebar - Profile */}
-          <div className="w-80 flex-shrink-0">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-6 p-4 lg:p-6">
+          {/* Left Sidebar - Profile (Hidden on mobile/tablet, shown on lg+) */}
+          <div className="hidden lg:block w-80 flex-shrink-0">
             <div className="bg-white rounded-lg shadow p-6 sticky top-24">
               <div className="text-center">
                 <img
                   src={userProfile?.photoURL || user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || 'User')}&background=f39c12&color=fff`}
                   alt="Profile"
-                  className="w-24 h-24 rounded-full mx-auto mb-4 border-4 border-green-100"
+                  className="w-32 h-32 rounded-full mx-auto mb-4 border-4 border-green-100"
                 />
-                <h2 className="text-xl font-bold text-gray-900">
+                <h2 className="text-2xl font-bold text-gray-900">
                   {userProfile?.firstName && userProfile?.lastName 
                     ? `${userProfile.firstName} ${userProfile.lastName}`
                     : user.displayName || 'User'}
                 </h2>
-                <p className="text-sm text-gray-600 mt-1">{userProfile?.email || user.email}</p>
+                <p className="text-base text-gray-600 mt-2">{userProfile?.email || user.email}</p>
                 
                 {userProfile?.profile?.city && (
-                  <div className="mt-3 inline-flex items-center gap-1 px-3 py-1 bg-green-50 rounded-full">
-                    <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-green-50 rounded-full">
+                    <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
-                    <span className="text-sm text-green-700 font-medium">
+                    <span className="text-base text-green-700 font-medium">
                       {userProfile.profile.city}
                       {userProfile.profile.pincode && `, ${userProfile.profile.pincode}`}
                     </span>
@@ -471,7 +471,7 @@ export default function FeedPage() {
           </div>
 
           {/* Center - Feed */}
-          <div className="flex-1 max-w-2xl">
+          <div className="flex-1 w-full md:max-w-3xl">
             {/* Create Post Box - keeping the same as before */}
             <div className="bg-white rounded-lg shadow p-4 mb-6">
               <form onSubmit={createPost}>
@@ -550,16 +550,16 @@ export default function FeedPage() {
               posts.map((post) => (
                 <div key={post._id} className="bg-white rounded-lg shadow mb-4">
                   {/* Post content here - keeping same as before */}
-                  <div className="p-4 flex items-center justify-between">
+                  <div className="p-6 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <img
                         src={post.user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.user.name)}&background=f39c12&color=fff`}
                         alt={post.user.name}
-                        className="w-10 h-10 rounded-full"
+                        className="w-12 h-12 rounded-full"
                       />
                       <div>
-                        <h3 className="font-semibold">{post.user.name}</h3>
-                        <p className="text-xs text-gray-500">{formatTime(post.createdAt)}</p>
+                        <h3 className="font-semibold text-base">{post.user.name}</h3>
+                        <p className="text-sm text-gray-500">{formatTime(post.createdAt)}</p>
                       </div>
                     </div>
                     {post.isOwner && (
@@ -574,8 +574,8 @@ export default function FeedPage() {
                     )}
                   </div>
 
-                  <div className="px-4 pb-3">
-                    <p className="whitespace-pre-wrap">{post.content}</p>
+                  <div className="px-6 pb-4">
+                    <p className="whitespace-pre-wrap text-base leading-relaxed">{post.content}</p>
                   </div>
 
                   {post.images && post.images.length > 0 && (
@@ -598,38 +598,38 @@ export default function FeedPage() {
                     </div>
                   )}
 
-                  <div className="px-4 py-3 border-t border-gray-100 flex items-center gap-6">
+                  <div className="px-6 py-4 border-t border-gray-100 flex items-center gap-8">
                     <button
                       onClick={() => toggleLike(post._id)}
                       className="flex items-center gap-2 text-gray-600 hover:text-green-600 transition"
                     >
                       <svg
-                        className={`w-5 h-5 ${post.isLiked ? 'fill-green-600 text-green-600' : ''}`}
+                        className={`w-6 h-6 ${post.isLiked ? 'fill-green-600 text-green-600' : ''}`}
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
                       >
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                       </svg>
-                      <span>{post.likesCount}</span>
+                      <span className="text-base font-medium">{post.likesCount}</span>
                     </button>
                     <button
                       onClick={() => setShowComments({ ...showComments, [post._id]: !showComments[post._id] })}
                       className="flex items-center gap-2 text-gray-600 hover:text-green-600 transition"
                     >
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                       </svg>
-                      <span>{post.commentsCount}</span>
+                      <span className="text-base font-medium">{post.commentsCount}</span>
                     </button>
                     <button
                       onClick={() => sharePost(post._id)}
                       className="flex items-center gap-2 text-gray-600 hover:text-green-600 transition"
                     >
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                       </svg>
-                      <span>{post.sharesCount}</span>
+                      <span className="text-base font-medium">{post.sharesCount}</span>
                     </button>
                   </div>
 
@@ -659,12 +659,12 @@ export default function FeedPage() {
                               <img
                                 src={comment.user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.user.name)}&background=f39c12&color=fff`}
                                 alt={comment.user.name}
-                                className="w-8 h-8 rounded-full flex-shrink-0"
+                                className="w-10 h-10 rounded-full flex-shrink-0"
                               />
                               <div className="flex-1">
-                                <div className="bg-gray-100 rounded-lg px-3 py-2">
-                                  <p className="font-semibold text-sm">{comment.user.name}</p>
-                                  <p className="text-sm">{comment.content}</p>
+                                <div className="bg-gray-100 rounded-lg px-4 py-3">
+                                  <p className="font-semibold text-base">{comment.user.name}</p>
+                                  <p className="text-base mt-1">{comment.content}</p>
                                 </div>
                                 <div className="flex items-center gap-4 mt-1 px-2">
                                   <button 
@@ -731,8 +731,8 @@ export default function FeedPage() {
             )}
           </div>
 
-          {/* Right Sidebar - Suggestions & Events */}
-          <div className="w-80 flex-shrink-0">
+          {/* Right Sidebar - Suggestions & Events (Hidden on mobile, shown on tablet+) */}
+          <div className="hidden md:block w-80 flex-shrink-0">
             <div className="space-y-6 sticky top-24">
               {/* Suggested Friends */}
               <div className="bg-white rounded-lg shadow p-4">

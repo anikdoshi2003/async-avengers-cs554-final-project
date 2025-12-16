@@ -60,6 +60,8 @@ LocalLens is a full-stack web application built with Next.js that combines geosp
 
 ### Installation
 
+Must have **Redis** and **RabbmitMQ** installed locally.
+
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
@@ -76,28 +78,6 @@ LocalLens is a full-stack web application built with Next.js that combines geosp
    ```
 
    **Note**: This project uses a Gist-based configuration system for all environment variables and sensitive credentials. No local `.env` file is needed. See `src/firebase/fetchEnvFromGist.js` for implementation details.
-
-3. **Set up Redis (required)**
-   
-   Install and start Redis:
-   ```bash
-   # Using Docker
-   docker run -d -p 6379:6379 redis:alpine
-   
-   # Or install locally
-   # macOS: brew install redis && brew services start redis
-   # Linux: sudo apt-get install redis-server
-   ```
-
-4. **Set up RabbitMQ (required)**
-   
-   For asynchronous geocoding, set up RabbitMQ:
-   ```bash
-   # Using Docker
-   docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
-   ```
-   
-   Access the management UI at `http://localhost:15672` (guest/guest)
 
 ### Running the Application
 
